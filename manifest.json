@@ -1,0 +1,12 @@
+{
+  "domain": "spoolmansync",
+  "name": "SpoolmanSync",
+  "codeowners": ["@Switchbot-Nova"],
+  "config_flow": true,
+  "documentation": "https://github.com/Switchbot-Nova/SpoolmanSync-HA-Integration",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Switchbot-Nova/SpoolmanSync-HA-Integration",
+  "requirements": [],
+  "version": "1.2.5",
+  "hacs": "2.0.0"
+}

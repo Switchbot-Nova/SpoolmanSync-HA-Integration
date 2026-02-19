@@ -1,309 +1,48 @@
-# SpoolmanSync
+# SpoolmanSync Home Assistant Integration
 
-**The easiest way to sync Bambu Lab AMS filament with Spoolman**
-
-![Build Status](https://github.com/gibz104/SpoolmanSync/actions/workflows/docker-publish.yml/badge.svg)
-[![Ko-Fi](https://img.shields.io/badge/Ko--fi-Support%20this%20project-ff5f5f?logo=ko-fi)](https://ko-fi.com/gibz104)
-[![GitHub stars](https://img.shields.io/github/stars/gibz104/SpoolmanSync?style=social)](https://github.com/gibz104/SpoolmanSync)
-
-> **Tired of manually editing YAML files?** SpoolmanSync provides a modern web UI for Bambu Lab filament tracking with Spoolman - no Home Assistant expertise required.
-
-SpoolmanSync automatically tracks which filament spools are loaded in your Bambu Lab printer's AMS units and syncs this information with [Spoolman](https://github.com/Donkie/Spoolman) for accurate filament inventory management. Works with **all filament brands** - not just Bambu Lab spools.
-
-## Why SpoolmanSync?
-
-| Feature | SpoolmanSync | Other Solutions |
-|---------|:------------:|:---------------:|
-| Web UI for spool assignment | ✅ | ❌ |
-| QR/Barcode scanning | ✅ | ❌ |
-| Printable QR code labels | ✅ | ❌ |
-| NFC tag writing | ✅ | ❌ |
-| Home Assistant add-on | ✅ | ❌ |
-| Bundled Home Assistant option | ✅ | ❌ |
-| No YAML editing required | ✅ | ❌ |
-| Multi-AMS support | ✅ | Limited |
-| Non-English Home Assistant support | ✅ | ❌ |
-| Works with ANY filament brand | ✅ | Partial |
-| Automatic filament usage tracking | ✅ | ✅ |
+This integration allows you to manage your Bambu Lab AMS tray assignments directly from Home Assistant.
 
 ## Features
 
-- **Dashboard** - View all your printers, AMS units, and tray assignments at a glance
-- **Spool Assignment** - Click any tray to assign a spool from your Spoolman inventory
-- **QR Code Scanning** - Scan Spoolman QR codes or custom barcodes to quickly look up and assign spools
-- **QR Label Generation** - Create and print QR code labels for your spools. Scan with your phone camera to quickly assign to AMS trays
-- **NFC Tag Writing** - Write spool links to NFC sticker tags. Tap with your phone to assign spools (Android only: Chrome, Edge, Opera, Samsung Internet)
-- **AMS 2 Pro & AMS HT Support** - Works with all AMS hardware variants
-- **Bambu Cloud Login** - Add printers by logging in with your Bambu Cloud account
-- **Home Assistant Add-on** - Install directly from the HA add-on store with sidebar integration
-- **Bundled Home Assistant** - Includes a pre-configured Home Assistant with ha-bambulab integration
-- **Webhook Integration** - Receives tray change events from Home Assistant automations
-- **Activity Logging** - Track all spool changes and sync events
+- **AMS Tray Entities**: Creates `select` entities for each AMS tray (and external spool) discovered via SpoolmanSync.
+- **Spool Assignment**: Change the assigned spool for any tray using the `select` entity.
+- **Spool Info**: Provides sensors with detailed information about the currently assigned spool (vendor, material, remaining weight, etc.).
 
-## Home Assistant Integration (HACS)
+## Installation
 
-Manage your AMS trays directly from your Home Assistant dashboard with the SpoolmanSync integration.
+1. Copy the `custom_components/spoolmansync` directory to your Home Assistant `custom_components` folder.
+2. Restart Home Assistant.
+3. Go to **Settings** -> **Devices & Services** -> **Add Integration**.
+4. Search for **SpoolmanSync**.
+5. Enter your SpoolmanSync URL (e.g., `http://192.168.0.34:3000`).
 
-### Features
-- **AMS Tray Selection**: Assign spools to trays using a simple dropdown menu.
-- **Spool Information**: View detailed filament data (material, weight, color) for each tray.
-- **Modern Dashboard Card**: Includes a custom Tile-based card for a clean, native look.
-- **Automatic Sync**: Stays in sync with the SpoolmanSync web app and QR/NFC scans.
+## Requirements
 
-### Installation via HACS
-1. Ensure [HACS](https://hacs.xyz/) is installed.
-2. Go to **HACS** → **Integrations**.
-3. Click **⋮** (top right) → **Custom repositories**.
-4. Add: `https://github.com/gibz104/SpoolmanSync` with category **Integration**.
-5. Find **SpoolmanSync** in HACS and click **Download**.
-6. Restart Home Assistant.
-7. Go to **Settings** → **Devices & Services** → **Add Integration** and search for **SpoolmanSync**.
-8. Enter your SpoolmanSync URL (e.g., `http://192.168.0.34:3000`).
+- **SpoolmanSync** must be running and accessible from Home Assistant.
+- **ha-bambulab** integration must be installed and configured in Home Assistant (as SpoolmanSync relies on it for printer discovery).
 
----
+## Lovelace AMS Card
 
-## Home Assistant Add-on (Recommended for HA OS users)
+A custom card is included to easily manage your AMS trays.
 
-If you're running Home Assistant OS or Supervised, install SpoolmanSync directly as an add-on:
+### Installation
 
-1. Add this repository to your add-on store:
-   - Go to **Settings** → **Add-ons** → **Add-on Store**
-   - Click **⋮** (top right) → **Repositories**
-   - Add: `https://github.com/gibz104/SpoolmanSync`
-2. Find **SpoolmanSync** in the store and click **Install**
-3. Start the add-on and enable **Show in sidebar**
-4. Open SpoolmanSync from the sidebar — your printers are automatically discovered from ha-bambulab
-5. Configure your Spoolman URL in **Settings** (or in the add-on configuration tab)
-6. Go to **Automations** and click **Configure Automations**
+1. Add Lovelace resource (**Settings > Dashboards > Resources > + Add Resource**):
+   **URL**: `/custom_components/spoolmansync/www/spoolmansync-card.js`
+   **Resource Type**: `JavaScript Module`
 
-**Port conflict?** The add-on uses port `3000` by default for direct access and QR/NFC scanning. If another add-on or service is already using port 3000, change it in the add-on's **Configuration** tab.
+**Remote Access (Nabu Casa/Cloudflare Tunnel):** If 404 error, copy `custom_components/spoolmansync/www/spoolmansync-card.js` to your HA `config/www/spoolmansync-card.js` and use **URL**: `/local/spoolmansync-card.js`
 
-**Requirements:** [ha-bambulab](https://github.com/greghesp/ha-bambulab) integration installed via [HACS](https://hacs.xyz/) and [Spoolman](https://github.com/Donkie/Spoolman) running and accessible from Home Assistant.
+2. Click **Reload Resources** (or refresh browser).
 
----
+### Example
 
-## Quick Install (Pre-built Images)
-
-The fastest way to get started with Docker using pre-built images:
-
-```bash
-# Download the compose file
-curl -O https://raw.githubusercontent.com/gibz104/SpoolmanSync/main/docker-compose.prebuilt.yml
-
-# Start with embedded Home Assistant (recommended for most users)
-docker compose -f docker-compose.prebuilt.yml --profile embedded up -d
-
-# Or, if you already have Home Assistant with ha-bambulab
-docker compose -f docker-compose.prebuilt.yml --profile external up -d
+```yaml
+type: custom:spoolmansync-card
+tray1: select.p2s_22e8bj5b1400071_ams_1_tray_1
+tray2: select.p2s_22e8bj5b1400071_ams_1_tray_2
+tray3: select.p2s_22e8bj5b1400071_ams_1_tray_3
+tray4: select.p2s_22e8bj5b1400071_ams_1_tray_4
 ```
 
-Then open http://localhost:3000 and follow the setup steps below.
-
----
-
-## Building from Source
-
-If you prefer to build locally or want to contribute:
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/gibz104/SpoolmanSync.git
-cd SpoolmanSync
-```
-
-### 2. Choose Your Mode
-
-SpoolmanSync requires a Docker Compose profile. Choose based on your setup:
-
-| Mode | Command | Best For |
-|------|---------|----------|
-| **Add-on** | [See above](#home-assistant-add-on-recommended-for-ha-os-users) | HA OS / Supervised users |
-| **Embedded** | `docker compose --profile embedded up -d` | Most users - includes bundled Home Assistant |
-| **External** | `docker compose --profile external up -d` | Users who already have Home Assistant with ha-bambulab |
-
----
-
-## Embedded Mode Setup (Recommended)
-
-Use this if you don't have Home Assistant or want a simpler setup.
-
-### Step 1: Start the Application
-
-```bash
-docker compose --profile embedded up -d
-```
-
-### Step 2: Open the UI
-
-Go to http://localhost:3000 in your browser.
-
-### Step 3: Add Your Printer
-
-1. Go to **Settings** in the navigation
-2. Click **Add Printer**
-3. Log in with your Bambu Cloud email and password
-4. Enter the verification code sent to your email
-5. Select your printer from the list
-6. Click **Continue**
-
-https://github.com/user-attachments/assets/51e006da-cdae-4db8-b261-bd622802ff62
-
-### Step 4: Connect Spoolman
-
-1. In **Settings**, scroll to the Spoolman section
-2. Enter your Spoolman URL (e.g., `http://127.0.0.1:7912`)
-3. Click **Connect**
-
-https://github.com/user-attachments/assets/47153c92-0a99-4749-8519-a24f1baad8a6
-
-### Step 5: Set Up Automations
-
-This enables automatic tray change detection.
-
-1. Go to **Automations** in the navigation
-2. Click **Configure Automations**
-3. The automations are automatically created in the embedded Home Assistant
-
-https://github.com/user-attachments/assets/4019ee5d-b2bb-4ae9-9c52-f581ec43f8c5
-
-### You're Done!
-
-Your dashboard should now show your printer with AMS trays. Click any tray to assign a spool from your Spoolman inventory.
-
----
-
-## External Mode Setup
-
-Use this if you already have Home Assistant with [ha-bambulab](https://github.com/greghesp/ha-bambulab) configured.
-
-### Step 1: Start the Application
-
-```bash
-docker compose --profile external up -d
-```
-
-### Step 2: Open the UI
-
-Go to http://localhost:3000 in your browser.
-
-### Step 3: Connect Home Assistant
-
-1. Go to **Settings** in the navigation
-2. Enter your Home Assistant URL (e.g., `http://127.0.0.1:8123`)
-3. Click **Connect with Home Assistant**
-4. You'll be redirected to Home Assistant to authorize SpoolmanSync
-5. Enter you Home Assistant credentials and click "Log in"
-
-https://github.com/user-attachments/assets/1f711fd2-28cd-41b5-8a41-06e991baec83
-
-Your printers should automatically appear on the dashboard (discovered from ha-bambulab).
-
-### Step 4: Connect Spoolman
-
-1. In **Settings**, scroll to the Spoolman section
-2. Enter your Spoolman URL (e.g., `http://127.0.0.1:7912`)
-3. Click **Connect**
-
-https://github.com/user-attachments/assets/915a321a-a6a8-4f81-85ae-5e7f6121f536
-
-### Step 5: Set Up Automations
-
-This enables automatic spool tracking and filament usage monitoring.
-
-1. Go to **Automations** in the navigation
-2. Enter the **SpoolmanSync URL** - the address where Home Assistant can reach SpoolmanSync (e.g., `http://192.168.1.100:3000`). Use your machine's IP address, not `localhost`, if Home Assistant is on a different machine.
-3. Click **Generate Configuration**
-4. You'll see two YAML configurations:
-   - **configuration.yaml** - Copy and add to your Home Assistant's `configuration.yaml`
-   - **automations.yaml** - Copy and add to your Home Assistant's `automations.yaml`
-5. Restart Home Assistant
-6. Return to SpoolmanSync and click **Mark as Configured**
-
-https://github.com/user-attachments/assets/06f0c220-e30a-4d19-9960-d8d6c10ae257
-
-### You're Done!
-
-Your dashboard should now show your printers with AMS trays. Click any tray to assign a spool from your Spoolman inventory.
-
----
-
-## Stopping and Restarting
-
-Always use the same profile you used to start:
-
-```bash
-# Embedded mode
-docker compose --profile embedded down      # Stop
-docker compose --profile embedded up -d     # Start
-
-# External mode
-docker compose --profile external down      # Stop
-docker compose --profile external up -d     # Start
-```
-
----
-
-## How It Works
-
-1. **Discovery**: SpoolmanSync connects to Home Assistant and discovers Bambu Lab printers via the ha-bambulab integration entities.
-
-2. **Manual Assignment**: Users can manually assign spools to trays via the dashboard or by scanning QR codes.
-
-3. **Automatic Sync**: When Home Assistant automations detect tray changes, they call the SpoolmanSync webhook with tray information (color, material, tag UID). SpoolmanSync matches this to spools in Spoolman and updates the `active_tray` extra field.
-
-4. **Spoolman Integration**: All spool assignments are stored in Spoolman's `extra` field as `active_tray`, making it compatible with other Spoolman integrations.
-
----
-
-## Troubleshooting
-
-### "No service selected" when running docker compose
-
-You must specify a profile:
-```bash
-docker compose --profile embedded up -d
-# or
-docker compose --profile external up -d
-```
-
-### No printers found
-
-**Embedded mode:**
-- Make sure you've added a printer via the **Add Printer** button
-- Check that your Bambu Cloud credentials are correct
-
-**External mode:**
-- Ensure ha-bambulab integration is installed and configured in your Home Assistant
-- Verify your Home Assistant URL is correct and you authorized SpoolmanSync
-- Check the Logs page for error messages
-
-### Webhook not working
-- Verify the automations were added to Home Assistant
-- Make sure you clicked **Mark as Configured** after adding the automations
-- Check that the SpoolmanSync URL you entered is reachable from Home Assistant (use your machine's IP address, not `localhost`)
-- Check that SpoolmanSync is accessible from Home Assistant's network
-
-### QR scanner not working
-- **HTTPS required for remote access**: Browsers block camera access on insecure HTTP connections. If you're accessing SpoolmanSync from a different device (not `localhost`), you'll need to set up HTTPS (e.g., via a reverse proxy or [Tailscale](https://tailscale.com/kb/1153/enabling-https))
-- Ensure you've granted camera permissions in your browser
-- Try using a different camera if available
-- Use manual search as a fallback
-
-### NFC tag writing not working
-- **HTTPS required**: Web NFC requires a secure context. If you're not on `localhost`, you'll need HTTPS (e.g., via a reverse proxy or [Tailscale](https://tailscale.com/kb/1153/enabling-https))
-- **Android only**: Web NFC is only supported on Android devices with Chrome, Edge, Opera, or Samsung Internet browsers
-- **Not supported**: iOS (any browser), Firefox, and Brave do not support Web NFC
-- If NFC is unavailable, SpoolmanSync shows a URL template you can use with a dedicated NFC writing app
-- Make sure NFC is enabled in your device settings
-- Use NTAG213, NTAG215, or NTAG216 NFC sticker tags
-
----
-
-## License
-
-MIT License - see [LICENSE.txt](LICENSE.txt)
-
-## Contributing
-
-Contributions are welcome! Please open an issue or pull request.
+The visual editor provides entity picker dropdowns for each tray (filtered to `select` domain).

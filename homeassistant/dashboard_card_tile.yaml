@@ -1,5 +1,0 @@
-type: custom:spoolmansync-card
-tray1: select.printer_ams_1_tray_1
-tray2: select.printer_ams_1_tray_2
-tray3: select.printer_ams_1_tray_3
-tray4: select.printer_ams_1_tray_4
