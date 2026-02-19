@@ -7,6 +7,6 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/Switchbot-Nova/SpoolmanSync-HA-Integration",
   "requirements": [],
-  "version": "1.2.5",
+  "version": "1.2.6",
   "hacs": "2.0.0"
 }
