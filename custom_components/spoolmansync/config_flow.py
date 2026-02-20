@@ -32,7 +32,7 @@ class SpoolmanSyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
-                vol.Required(CONF_URL, default=""): str,
+                vol.Required(CONF_URL, default="http://192.168.0.100:3000"): str,
             }),
             errors=errors,
         )

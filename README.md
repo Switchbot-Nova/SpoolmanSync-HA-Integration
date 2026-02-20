@@ -10,11 +10,24 @@ This integration allows you to manage your Bambu Lab AMS tray assignments direct
 
 ## Installation
 
+### HACS (Recommended)
+
+1. Install [HACS](https://hacs.xyz/) if you haven't already.
+2. Go to **HACS** > **Integrations** > **+ Explore & Download Repositories**.
+3. Search for **SpoolmanSync**.
+4. Click **Download**.
+5. Restart Home Assistant.
+6. Go to **Settings** -> **Devices & Services** -> **Add Integration**.
+7. Search for **SpoolmanSync**.
+8. Enter your SpoolmanSync URL (e.g., `http://192.168.0.100:3000`).
+
+### Manual Installation
+
 1. Copy the `custom_components/spoolmansync` directory to your Home Assistant `custom_components` folder.
 2. Restart Home Assistant.
 3. Go to **Settings** -> **Devices & Services** -> **Add Integration**.
 4. Search for **SpoolmanSync**.
-5. Enter your SpoolmanSync URL (e.g., `http://192.168.0.34:3000`).
+5. Enter your SpoolmanSync URL (e.g., `http://192.168.0.100:3000`).
 
 ## Requirements
 
@@ -23,19 +36,11 @@ This integration allows you to manage your Bambu Lab AMS tray assignments direct
 
 ## Lovelace AMS Card
 
-A custom card is included to easily manage your AMS trays.
+A custom card is included to easily manage your AMS trays. The card is **automatically loaded** when you install the integration—no manual resource registration needed!
 
-### Installation
+### Usage
 
-1. Add Lovelace resource (**Settings > Dashboards > Resources > + Add Resource**):
-   **URL**: `/custom_components/spoolmansync/www/spoolmansync-card.js`
-   **Resource Type**: `JavaScript Module`
-
-**Remote Access (Nabu Casa/Cloudflare Tunnel):** If 404 error, copy `custom_components/spoolmansync/www/spoolmansync-card.js` to your HA `config/www/spoolmansync-card.js` and use **URL**: `/local/spoolmansync-card.js`
-
-2. Click **Reload Resources** (or refresh browser).
-
-### Example
+Simply add the card to your dashboard:
 
 ```yaml
 type: custom:spoolmansync-card
