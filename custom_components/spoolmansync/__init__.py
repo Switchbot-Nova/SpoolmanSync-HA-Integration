@@ -83,7 +83,7 @@ async def async_register_custom_card(hass: HomeAssistant):
     if not os.path.exists(www_path):
         return
 
-    url_path = f"/{DOMAIN}/local"
+    url_path = f"/custom_components/{DOMAIN}/www"
 
     # Register using the modern async API (accepts a list of StaticPathConfig)
     await hass.http.async_register_static_paths([
