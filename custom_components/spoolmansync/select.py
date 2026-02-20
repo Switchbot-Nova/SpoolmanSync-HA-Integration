@@ -7,6 +7,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
+import asyncio
 
 from . import DOMAIN, parse_active_tray
 
@@ -21,12 +22,16 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id]
     url = entry.data[CONF_URL]
     
-    entities = []
+    # Wait for data to be available, with a short timeout
+    if coordinator.last_update_success is False:
+        _LOGGER.warning("Coordinator failed to fetch initial data, waiting for retry...")
+        # Wait up to 10 seconds for first successful update
+        for attempt in range(20):
+            if coordinator.last_update_success:
+                break
+            await asyncio.sleep(0.5)
     
-    # We assume there is at least one printer and it has AMS units
-    # The user asked for 4 entities: AMS Tray 1, 2, 3, 4
-    # We will map these to the first printer's first AMS unit for simplicity, 
-    # or create them based on discovered printers.
+    entities = []
     
     # Debug: Log the full coordinator data
     _LOGGER.debug(f"Coordinator data: {coordinator.data}")
@@ -35,10 +40,10 @@ async def async_setup_entry(
     if not printers:
         _LOGGER.warning(
             f"No printers found in SpoolmanSync. "
-            f"Coordinator data keys: {coordinator.data.keys()}"
+            f"Coordinator data keys: {coordinator.data.keys()}. "
+            f"Full coordinator data: {coordinator.data}"
         )
-        # Don't return - try to continue anyway
-        # This allows the integration to stay loaded even if API is temporarily unavailable
+        # Don't return - this allows the integration to stay loaded and re-fetch data
 
     # For each printer and each AMS unit, create tray entities
     for printer in printers:
@@ -58,6 +63,8 @@ async def async_setup_entry(
     
     if entities:
         async_add_entities(entities)
+    else:
+        _LOGGER.info("No select entities created - integration will retry on next coordinator update")
         
         # Also handle external spool if it exists
         if printer.get("external_spool"):

@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -18,6 +19,15 @@ async def async_setup_entry(
     """Set up SpoolmanSync sensor entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     
+    # Wait for data to be available, with a short timeout
+    if coordinator.last_update_success is False:
+        _LOGGER.warning("Coordinator failed to fetch initial data, waiting for retry...")
+        # Wait up to 10 seconds for first successful update
+        for attempt in range(20):
+            if coordinator.last_update_success:
+                break
+            await asyncio.sleep(0.5)
+    
     entities = []
     
     # Debug: Log the full coordinator data
@@ -27,7 +37,8 @@ async def async_setup_entry(
     if not printers:
         _LOGGER.warning(
             f"No printers found in SpoolmanSync. "
-            f"Coordinator data keys: {coordinator.data.keys()}"
+            f"Coordinator data keys: {coordinator.data.keys()}. "
+            f"Full coordinator data: {coordinator.data}"
         )
     
     for printer in printers:
@@ -56,6 +67,8 @@ async def async_setup_entry(
 
     if entities:
         async_add_entities(entities)
+    else:
+        _LOGGER.info("No sensor entities created - integration will retry on next coordinator update")
 
 class SpoolmanTraySensor(CoordinatorEntity, SensorEntity):
     """Representation of a Spoolman Tray sensor showing assigned spool info."""
