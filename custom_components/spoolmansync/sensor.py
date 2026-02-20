@@ -20,7 +20,16 @@ async def async_setup_entry(
     
     entities = []
     
+    # Debug: Log the full coordinator data
+    _LOGGER.debug(f"Coordinator data: {coordinator.data}")
+    
     printers = coordinator.data.get("printers", [])
+    if not printers:
+        _LOGGER.warning(
+            f"No printers found in SpoolmanSync. "
+            f"Coordinator data keys: {coordinator.data.keys()}"
+        )
+    
     for printer in printers:
         printer_name = printer.get("name", "Printer")
         for ams in printer.get("ams_units", []):
@@ -45,7 +54,8 @@ async def async_setup_entry(
                 )
             )
 
-    async_add_entities(entities)
+    if entities:
+        async_add_entities(entities)
 
 class SpoolmanTraySensor(CoordinatorEntity, SensorEntity):
     """Representation of a Spoolman Tray sensor showing assigned spool info."""

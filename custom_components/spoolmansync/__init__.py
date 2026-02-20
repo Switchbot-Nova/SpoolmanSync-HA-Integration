@@ -16,23 +16,6 @@ DOMAIN = "spoolmansync"
 PLATFORMS = [Platform.SELECT, Platform.SENSOR]
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up the SpoolmanSync component (including static paths for the card)."""
-    # Register the custom card static path at setup time
-    www_path = hass.config.path("custom_components", DOMAIN, "www")
-    if os.path.exists(www_path):
-        url_path = f"/custom_components/{DOMAIN}/www"
-        _LOGGER.info(f"Registering SpoolmanSync card static path at {url_path}")
-        await hass.http.async_register_static_paths([
-            StaticPathConfig(
-                url_path=url_path,
-                path=www_path,
-                cache_headers=False
-            )
-        ])
-    return True
-
-
 def parse_active_tray(active_tray: str) -> str | None:
     """Parse active_tray value, handling both JSON and string formats.
     
@@ -61,17 +44,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 if response.status != 200:
                     raise UpdateFailed(f"Error fetching printers: {response.status}")
                 printers_data = await response.json()
+                _LOGGER.debug(f"Printers API response: {printers_data}")
 
             async with session.get(f"{url}/api/spools") as response:
                 if response.status != 200:
                     raise UpdateFailed(f"Error fetching spools: {response.status}")
                 spools_data = await response.json()
+                _LOGGER.debug(f"Spools API response: {spools_data}")
 
-            return {
-                "printers": printers_data.get("printers", []),
-                "spools": spools_data.get("spools", [])
+            coordinator_data = {
+                "printers": printers_data.get("printers", []) if isinstance(printers_data, dict) else printers_data,
+                "spools": spools_data.get("spools", []) if isinstance(spools_data, dict) else spools_data
             }
+            _LOGGER.debug(f"Coordinator data: {coordinator_data}")
+            return coordinator_data
         except Exception as err:
+            _LOGGER.error(f"Error communicating with SpoolmanSync: {err}")
             raise UpdateFailed(f"Error communicating with SpoolmanSync: {err}")
 
     coordinator = DataUpdateCoordinator(
@@ -86,6 +74,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
+
+    # Register the custom card static path
+    www_path = hass.config.path("custom_components", DOMAIN, "www")
+    if os.path.exists(www_path):
+        url_path = f"/custom_components/{DOMAIN}/www"
+        _LOGGER.info(f"Registering SpoolmanSync card static path at {url_path}")
+        try:
+            await hass.http.async_register_static_paths([
+                StaticPathConfig(
+                    url_path=url_path,
+                    path=www_path,
+                    cache_headers=False
+                )
+            ])
+        except Exception as err:
+            _LOGGER.error(f"Failed to register card static path: {err}")
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

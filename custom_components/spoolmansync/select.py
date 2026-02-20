@@ -28,10 +28,17 @@ async def async_setup_entry(
     # We will map these to the first printer's first AMS unit for simplicity, 
     # or create them based on discovered printers.
     
+    # Debug: Log the full coordinator data
+    _LOGGER.debug(f"Coordinator data: {coordinator.data}")
+    
     printers = coordinator.data.get("printers", [])
     if not printers:
-        _LOGGER.warning("No printers found in SpoolmanSync")
-        return
+        _LOGGER.warning(
+            f"No printers found in SpoolmanSync. "
+            f"Coordinator data keys: {coordinator.data.keys()}"
+        )
+        # Don't return - try to continue anyway
+        # This allows the integration to stay loaded even if API is temporarily unavailable
 
     # For each printer and each AMS unit, create tray entities
     for printer in printers:
@@ -48,6 +55,9 @@ async def async_setup_entry(
                         tray,
                     )
                 )
+    
+    if entities:
+        async_add_entities(entities)
         
         # Also handle external spool if it exists
         if printer.get("external_spool"):
