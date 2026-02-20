@@ -8,7 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
 
-from . import DOMAIN
+from . import DOMAIN, parse_active_tray
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,18 +88,22 @@ class SpoolmanTraySelect(CoordinatorEntity, SelectEntity):
             model="Bambu Lab Printer",
         )
 
-    @property
-    def options(self) -> list[str]:
-        """Return a list of available spools."""
+    def _get_spool_lookup(self) -> dict[str, int]:
+        """Return a mapping of spool display labels to spool IDs."""
         spools = self.coordinator.data.get("spools", [])
-        options = ["None"]
+        lookup = {"None": None}
         for spool in spools:
             vendor = spool.get("filament", {}).get("vendor", {}).get("name", "Unknown")
             material = spool.get("filament", {}).get("material", "Unknown")
             name = spool.get("filament", {}).get("name", "")
             spool_label = f"#{spool['id']} {vendor} {material} {name}".strip()
-            options.append(spool_label)
-        return options
+            lookup[spool_label] = spool["id"]
+        return lookup
+
+    @property
+    def options(self) -> list[str]:
+        """Return a list of available spools."""
+        return list(self._get_spool_lookup().keys())
 
     @property
     def current_option(self) -> str | None:
@@ -108,43 +112,36 @@ class SpoolmanTraySelect(CoordinatorEntity, SelectEntity):
         for spool in spools:
             active_tray = spool.get("extra", {}).get("active_tray")
             if active_tray:
-                # Spoolman stores extra values as JSON strings
-                import json
-                try:
-                    clean_tray_id = json.loads(active_tray)
-                    if clean_tray_id == self._tray_entity_id:
-                        vendor = spool.get("filament", {}).get("vendor", {}).get("name", "Unknown")
-                        material = spool.get("filament", {}).get("material", "Unknown")
-                        name = spool.get("filament", {}).get("name", "")
-                        return f"#{spool['id']} {vendor} {material} {name}".strip()
-                except Exception:
-                    if active_tray.strip('"') == self._tray_entity_id:
-                        vendor = spool.get("filament", {}).get("vendor", {}).get("name", "Unknown")
-                        material = spool.get("filament", {}).get("material", "Unknown")
-                        name = spool.get("filament", {}).get("name", "")
-                        return f"#{spool['id']} {vendor} {material} {name}".strip()
+                tray_id = parse_active_tray(active_tray)
+                if tray_id == self._tray_entity_id:
+                    vendor = spool.get("filament", {}).get("vendor", {}).get("name", "Unknown")
+                    material = spool.get("filament", {}).get("material", "Unknown")
+                    name = spool.get("filament", {}).get("name", "")
+                    return f"#{spool['id']} {vendor} {material} {name}".strip()
         return "None"
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected spool."""
         session = async_get_clientsession(self.hass)
+        lookup = self._get_spool_lookup()
         
-        if option == "None":
+        if option not in lookup:
+            _LOGGER.error("Invalid spool option: %s", option)
+            return
+        
+        spool_id = lookup[option]
+        
+        if spool_id is None:
             # Find current spool and unassign
             current_spool_id = None
             spools = self.coordinator.data.get("spools", [])
             for spool in spools:
                 active_tray = spool.get("extra", {}).get("active_tray")
                 if active_tray:
-                    import json
-                    try:
-                        if json.loads(active_tray) == self._tray_entity_id:
-                            current_spool_id = spool["id"]
-                            break
-                    except:
-                        if active_tray.strip('"') == self._tray_entity_id:
-                            current_spool_id = spool["id"]
-                            break
+                    tray_id = parse_active_tray(active_tray)
+                    if tray_id == self._tray_entity_id:
+                        current_spool_id = spool["id"]
+                        break
             
             if current_spool_id:
                 async with session.delete(
@@ -154,16 +151,12 @@ class SpoolmanTraySelect(CoordinatorEntity, SelectEntity):
                     if response.status != 200:
                         _LOGGER.error("Failed to unassign spool: %s", await response.text())
         else:
-            # Extract ID from option string (e.g., "#123 Vendor Material Name")
-            try:
-                spool_id = int(option.split(" ")[0].replace("#", ""))
-                async with session.post(
-                    f"{self._url}/api/spools",
-                    json={"spoolId": spool_id, "trayId": self._tray_entity_id}
-                ) as response:
-                    if response.status != 200:
-                        _LOGGER.error("Failed to assign spool: %s", await response.text())
-            except Exception as err:
-                _LOGGER.error("Error parsing spool ID from option %s: %s", option, err)
+            # Use spool_id from lookup dictionary
+            async with session.post(
+                f"{self._url}/api/spools",
+                json={"spoolId": spool_id, "trayId": self._tray_entity_id}
+            ) as response:
+                if response.status != 200:
+                    _LOGGER.error("Failed to assign spool: %s", await response.text())
 
         await self.coordinator.async_request_refresh()

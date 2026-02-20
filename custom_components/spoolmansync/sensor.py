@@ -6,7 +6,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
 
-from . import DOMAIN
+from . import DOMAIN, parse_active_tray
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,14 +77,9 @@ class SpoolmanTraySensor(CoordinatorEntity, SensorEntity):
         for spool in spools:
             active_tray = spool.get("extra", {}).get("active_tray")
             if active_tray:
-                import json
-                try:
-                    clean_tray_id = json.loads(active_tray)
-                    if clean_tray_id == self._tray_entity_id:
-                        return f"Spool #{spool['id']}"
-                except Exception:
-                    if active_tray.strip('"') == self._tray_entity_id:
-                        return f"Spool #{spool['id']}"
+                tray_id = parse_active_tray(active_tray)
+                if tray_id == self._tray_entity_id:
+                    return f"Spool #{spool['id']}"
         return "No Spool"
 
     @property
@@ -94,26 +89,14 @@ class SpoolmanTraySensor(CoordinatorEntity, SensorEntity):
         for spool in spools:
             active_tray = spool.get("extra", {}).get("active_tray")
             if active_tray:
-                import json
-                try:
-                    clean_tray_id = json.loads(active_tray)
-                    if clean_tray_id == self._tray_entity_id:
-                        return {
-                            "spool_id": spool["id"],
-                            "vendor": spool.get("filament", {}).get("vendor", {}).get("name"),
-                            "material": spool.get("filament", {}).get("material"),
-                            "filament_name": spool.get("filament", {}).get("name"),
-                            "remaining_weight": spool.get("remaining_weight"),
-                            "color_hex": spool.get("filament", {}).get("color_hex"),
-                        }
-                except Exception:
-                    if active_tray.strip('"') == self._tray_entity_id:
-                        return {
-                            "spool_id": spool["id"],
-                            "vendor": spool.get("filament", {}).get("vendor", {}).get("name"),
-                            "material": spool.get("filament", {}).get("material"),
-                            "filament_name": spool.get("filament", {}).get("name"),
-                            "remaining_weight": spool.get("remaining_weight"),
-                            "color_hex": spool.get("filament", {}).get("color_hex"),
-                        }
+                tray_id = parse_active_tray(active_tray)
+                if tray_id == self._tray_entity_id:
+                    return {
+                        "spool_id": spool["id"],
+                        "vendor": spool.get("filament", {}).get("vendor", {}).get("name"),
+                        "material": spool.get("filament", {}).get("material"),
+                        "filament_name": spool.get("filament", {}).get("name"),
+                        "remaining_weight": spool.get("remaining_weight"),
+                        "color_hex": spool.get("filament", {}).get("color_hex"),
+                    }
         return {}

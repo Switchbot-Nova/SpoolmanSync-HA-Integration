@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import os
+import json
 from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_URL, Platform
@@ -13,6 +14,23 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "spoolmansync"
 PLATFORMS = [Platform.SELECT, Platform.SENSOR]
+
+
+def parse_active_tray(active_tray: str) -> str | None:
+    """Parse active_tray value, handling both JSON and string formats.
+    
+    Spoolman may store active_tray as either a JSON string or a quoted string.
+    This function handles both cases and returns the parsed tray ID.
+    """
+    if not active_tray:
+        return None
+    
+    try:
+        # Try parsing as JSON first
+        return json.loads(active_tray)
+    except (json.JSONDecodeError, ValueError):
+        # Fall back to treating it as a quoted string
+        return active_tray.strip('"')
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up SpoolmanSync from a config entry."""
@@ -65,9 +83,7 @@ async def async_register_custom_card(hass: HomeAssistant):
     if not os.path.exists(www_path):
         return
 
-    # Use a versioned path to force browser cache refresh
-    version = "1.2.1"
-    url_path = f"/{DOMAIN}/local/{version}"
+    url_path = f"/{DOMAIN}/local"
 
     # Register using the modern async API (accepts a list of StaticPathConfig)
     await hass.http.async_register_static_paths([
