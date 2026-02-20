@@ -184,8 +184,4 @@ window.customCards.push({
   preview: true,
 });
 
-console.info(
-  "%c SPOOLMANSYNC-CARD %c 1.2.3 ",
-  "color: white; background: #03a9f4; font-weight: 700;",
-  "color: #03a9f4; background: white; font-weight: 700;"
-);
+console.info("%c SPOOLMANSYNC-CARD loaded", "color: white; background: #03a9f4; font-weight: 700;");
