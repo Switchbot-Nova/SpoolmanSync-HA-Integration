@@ -8,6 +8,7 @@ class SpoolmanSyncCard extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this.tiles = [];
+    this._tileMap = {};
     this.helpers = null;
     this._trayKey = null;
   }
@@ -42,54 +43,102 @@ class SpoolmanSyncCard extends HTMLElement {
   }
 
   async update() {
-    if (!this.content || !this._config || !this._hass) return;
+  if (!this.content || !this._config || !this._hass) return;
 
-    const trays = [
-      { id: this._config.tray1, name: "Tray 1", color: "blue" },
-      { id: this._config.tray2, name: "Tray 2", color: "orange" },
-      { id: this._config.tray3, name: "Tray 3", color: "green" },
-      { id: this._config.tray4, name: "Tray 4", color: "purple" }
-    ].filter(t => t.id && t.id !== "");
+  const trays = [
+    { id: this._config.tray1, name: "Tray 1", color: "blue" },
+    { id: this._config.tray2, name: "Tray 2", color: "orange" },
+    { id: this._config.tray3, name: "Tray 3", color: "green" },
+    { id: this._config.tray4, name: "Tray 4", color: "purple" }
+  ].filter(t => t.id && t.id.trim() !== "");
 
-    const trayKey = trays.map(t => t.id).join('|');
+  const trayKey = trays.map(t => t.id).sort().join('|'); // sort to make order-independent
 
-    if (!this.tiles.length || this._trayKey !== trayKey) {
-      this.content.innerHTML = "";
-      this.tiles.length = 0;
-      this._trayKey = trayKey;
-      await this.createTiles(trays);
-    } else {
-      this.tiles.forEach(tile => {
+  if (this._trayKey !== trayKey) {
+    // Clear only when the set of entities actually changed
+    this.content.innerHTML = "";
+    this.tiles.length = 0;
+    this._tileMap = {};
+    this._trayKey = trayKey;
+    await this.createTiles(trays);
+  } else {
+    // Just update hass on existing tiles
+    this.tiles.forEach(tile => {
+      if (tile && typeof tile.hass === 'object') {
         tile.hass = this._hass;
-      });
-    }
+      }
+    });
   }
+}
 
   async createTiles(trays) {
-    if (!this.helpers) {
-      this.helpers = await window.loadCardHelpers();
-    }
-    const createCardElement = this.helpers.createCardElement;
-    try {
-      for (const tray of trays) {
-        const tileConfig = {
-          type: "tile",
-          entity: tray.id,
-          name: tray.name,
-          icon: "mdi:printer-3d-nozzle",
-          color: tray.color,
-          vertical: false,
-          features_position: "bottom"
-        };
-        const tile = await createCardElement(tileConfig);
-        tile.hass = this._hass;
-        this.content.appendChild(tile);
-        this.tiles.push(tile);
+      if (!this.helpers) {
+        this.helpers = await window.loadCardHelpers();
       }
-    } catch (e) {
-      console.error("Error creating SpoolmanSync tiles:", e);
+      const createCardElement = this.helpers.createCardElement;
+
+      // 1. Collect what should exist (key = entity id)
+      const desiredKeys = new Set(trays.map(t => t.id).filter(Boolean));
+
+      // 2. Remove wrappers that are no longer wanted
+      Array.from(this.content.children).forEach(child => {
+        const entityId = child.getAttribute("data-spoolmansync-entity");
+        if (entityId && !desiredKeys.has(entityId)) {
+          child.remove();
+          delete this._tileMap[entityId];
+        }
+      });
+
+      // 3. Create or update wanted trays – in order
+      this.tiles = []; // we'll rebuild this list
+
+      for (const tray of trays) {
+        if (!tray.id) continue;
+
+        let entry = this._tileMap[tray.id];
+
+        if (!entry) {
+          // Create new
+          const tileConfig = {
+            type: "tile",
+            entity: tray.id,
+            name: tray.name,
+            icon: "mdi:printer-3d-nozzle",
+            color: tray.color,
+            vertical: false,
+            features_position: "bottom"
+          };
+
+          const tile = await createCardElement(tileConfig);
+          tile.hass = this._hass;
+
+          const wrapper = document.createElement("div");
+          wrapper.className = "spoolmansync-tile-wrapper";
+          wrapper.setAttribute("data-spoolmansync-entity", tray.id);
+          wrapper.appendChild(tile);
+
+          this.content.appendChild(wrapper);
+
+          entry = { wrapper, tile };
+          this._tileMap[tray.id] = entry;
+        } else {
+          // Already exists → just update hass & name/icon/color if changed
+          entry.tile.hass = this._hass;
+
+          // Optional: update tile config if name/color can change dynamically
+          // (normally tile card doesn't react to these changes after creation,
+          //  so you may need to recreate in that case – but usually not needed)
+        }
+
+        this.tiles.push(entry.tile);
+      }
+
+      // Optional: force layout update if grid changed
+      this.content.style.display = "none";
+      this.content.offsetHeight; // reflow
+      this.content.style.display = "";
     }
-  }
+  
 
   static getConfigElement() {
     return document.createElement("spoolmansync-card-editor");
@@ -177,6 +226,7 @@ class SpoolmanSyncCardEditor extends HTMLElement {
   }
 }
 
+customElements.define("spoolmansync-card-editor", SpoolmanSyncCardEditor);
 console.debug("SpoolmanSyncCardEditor custom element defined");
 
 window.customCards = window.customCards || [];
@@ -186,6 +236,5 @@ window.customCards.push({
   description: "A card to manage your SpoolmanSync AMS trays",
   preview: true,
 });
-console.info("%c SPOOLMANSYNC-CARD loaded", "color: white; background: #03a9f4; font-weight: 700;");
-console.debug("window.customCards:", window.customCards
+console.debug("window.customCards:", window.customCards);
 console.info("%c SPOOLMANSYNC-CARD loaded", "color: white; background: #03a9f4; font-weight: 700;");
