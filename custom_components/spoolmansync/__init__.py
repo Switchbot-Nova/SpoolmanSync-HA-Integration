@@ -80,7 +80,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     if not m:
                         continue
                     printer_key, ams_idx, tray_idx = m.group(1), int(m.group(2)), int(m.group(3))
-                    p = printers_from_spools.setdefault(printer_key, {"entity_id": f"sensor.{printer_key}_print_status", "name": printer_key, "ams_units": {}})
+                    # If Home Assistant already has a printer status entity for this
+                    # printer, skip creating a fallback printer to avoid duplicates.
+                    existing_entity_id = f"sensor.{printer_key}_print_status"
+                    if hass.states.get(existing_entity_id) is not None:
+                        _LOGGER.debug(f"Skipping fallback for existing printer entity: {existing_entity_id}")
+                        continue
+                    p = printers_from_spools.setdefault(printer_key, {"entity_id": existing_entity_id, "name": printer_key, "ams_units": {}})
                     ams = p["ams_units"].setdefault(ams_idx, {"name": f"AMS {ams_idx}", "trays": []})
                     # Build a tray object based on spool and active_tray
                     tray_obj = {
@@ -128,21 +134,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    # Register the custom card static path
-    www_path = hass.config.path("custom_components", DOMAIN, "www")
-    if os.path.exists(www_path):
-        url_path = f"/custom_components/{DOMAIN}/www"
-        _LOGGER.info(f"Registering SpoolmanSync card static path at {url_path}")
-        try:
-            await hass.http.async_register_static_paths([
-                StaticPathConfig(
-                    url_path=url_path,
-                    path=www_path,
-                    cache_headers=False
-                )
-            ])
-        except Exception as err:
-            _LOGGER.error(f"Failed to register card static path: {err}")
+    # NOTE: automatic registration of the card static path was removed.
+    # Serving the card file is intentionally left to the user (manual resource)
+    # or HACS. If you want the integration to serve the file automatically,
+    # re-enable static path registration here using `hass.http.async_register_static_paths`.
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

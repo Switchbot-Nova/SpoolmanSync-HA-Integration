@@ -36,11 +36,22 @@ This integration allows you to manage your Bambu Lab AMS tray assignments direct
 
 ## Lovelace AMS Card
 
-A custom card is included to easily manage your AMS trays. The card is **automatically loaded** when you install the integration—no manual resource registration needed!
+A custom Lovelace card is included to manage your AMS trays, but the integration does not automatically register the frontend resource.
 
-### Usage
+You must add the card JavaScript as a Lovelace resource manually (one of these options):
 
-Simply add the card to your dashboard:
+- Recommended — copy the card to Home Assistant `www` and add a local resource:
+
+	1. Copy `custom_components/spoolmansync/www/spoolmansync-card.js` into your Home Assistant `config/www/` folder.
+	2. In Home Assistant go to **Settings → Dashboards → Resources** (or **Settings → Lovelace Dashboards → Resources**) and add a new resource with:
+		 - URL: `/local/spoolmansync-card.js`
+		 - Resource type: `module`
+
+- Alternative — if you installed the card via HACS as a frontend repository, add the HACS-provided resource (HACS normally does this for you). Example pattern:
+
+	- `/hacsfiles/<repo-folder>/spoolmansync-card.js?hacstag=<tag>`
+
+After adding the resource (and reloading the Lovelace page), add the card to your dashboard with this configuration:
 
 ```yaml
 type: custom:spoolmansync-card
@@ -50,4 +61,4 @@ tray3: select.p2s_22e8bj5b1400071_ams_1_tray_3
 tray4: select.p2s_22e8bj5b1400071_ams_1_tray_4
 ```
 
-The visual editor provides entity picker dropdowns for each tray (filtered to `select` domain).
+The visual editor will provide entity pickers for each tray (filtered to the `select` domain).
