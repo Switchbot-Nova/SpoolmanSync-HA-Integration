@@ -106,7 +106,8 @@ console.debug("SpoolmanSyncCard custom element defined");
 class SpoolmanSyncCardEditor extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: "open" });
+    // Do NOT use shadow DOM for the editor so Home Assistant editor
+    // components (like `ha-entity-picker`) can render and inherit styles.
   }
 
   set hass(hass) {
@@ -127,7 +128,7 @@ class SpoolmanSyncCardEditor extends HTMLElement {
   }
 
   render() {
-    this.shadowRoot.innerHTML = `
+    this.innerHTML = `
       <style>
         .card-config {
           padding: 16px;
@@ -136,10 +137,10 @@ class SpoolmanSyncCardEditor extends HTMLElement {
           gap: 12px;
         }
       </style>
+      <div class="card-config"></div>
     `;
 
-    const configDiv = document.createElement("div");
-    configDiv.className = "card-config";
+    const configDiv = this.querySelector(".card-config");
 
     const trays = ["tray1", "tray2", "tray3", "tray4"];
     trays.forEach((field, index) => {
@@ -160,17 +161,16 @@ class SpoolmanSyncCardEditor extends HTMLElement {
       });
       configDiv.appendChild(picker);
     });
-    this.shadowRoot.appendChild(configDiv);
   }
 
   updateHass() {
-    this.shadowRoot.querySelectorAll("ha-entity-picker").forEach((picker) => {
+    this.querySelectorAll("ha-entity-picker").forEach((picker) => {
       picker.hass = this._hass;
     });
   }
 
   updatePickers() {
-    this.shadowRoot.querySelectorAll("ha-entity-picker").forEach((picker) => {
+    this.querySelectorAll("ha-entity-picker").forEach((picker) => {
       const field = picker.getAttribute("data-config");
       picker.value = this._config?.[field] || "";
     });
