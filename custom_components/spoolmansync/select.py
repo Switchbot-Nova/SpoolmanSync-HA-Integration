@@ -65,20 +65,6 @@ async def async_setup_entry(
         async_add_entities(entities)
     else:
         _LOGGER.info("No select entities created - integration will retry on next coordinator update")
-        
-        # Also handle external spool if it exists
-        if printer.get("external_spool"):
-            entities.append(
-                SpoolmanTraySelect(
-                    coordinator,
-                    url,
-                    printer_name,
-                    "External",
-                    printer["external_spool"],
-                )
-            )
-
-    async_add_entities(entities)
 
 class SpoolmanTraySelect(CoordinatorEntity, SelectEntity):
     """Representation of a Spoolman Tray selection."""
