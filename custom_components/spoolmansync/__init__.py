@@ -16,6 +16,23 @@ DOMAIN = "spoolmansync"
 PLATFORMS = [Platform.SELECT, Platform.SENSOR]
 
 
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the SpoolmanSync component (including static paths for the card)."""
+    # Register the custom card static path at setup time
+    www_path = hass.config.path("custom_components", DOMAIN, "www")
+    if os.path.exists(www_path):
+        url_path = f"/custom_components/{DOMAIN}/www"
+        _LOGGER.info(f"Registering SpoolmanSync card static path at {url_path}")
+        await hass.http.async_register_static_paths([
+            StaticPathConfig(
+                url_path=url_path,
+                path=www_path,
+                cache_headers=False
+            )
+        ])
+    return True
+
+
 def parse_active_tray(active_tray: str) -> str | None:
     """Parse active_tray value, handling both JSON and string formats.
     
@@ -70,29 +87,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    # Register custom card
-    await async_register_custom_card(hass)
-
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
 
-async def async_register_custom_card(hass: HomeAssistant):
-    """Register the custom card with Home Assistant."""
-    www_path = hass.config.path("custom_components", DOMAIN, "www")
-    if not os.path.exists(www_path):
-        return
-
-    url_path = f"/custom_components/{DOMAIN}/www"
-
-    # Register using the modern async API (accepts a list of StaticPathConfig)
-    await hass.http.async_register_static_paths([
-        StaticPathConfig(
-            url_path=url_path,
-            path=www_path,
-            cache_headers=False   # or True, depending on whether you want aggressive caching
-        )
-    ])
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""

@@ -1,6 +1,8 @@
 /**
  * SpoolmanSync AMS Card
  */
+console.debug("SpoolmanSync card script loading...");
+
 class SpoolmanSyncCard extends HTMLElement {
   constructor() {
     super();
@@ -99,6 +101,7 @@ class SpoolmanSyncCard extends HTMLElement {
 }
 
 customElements.define("spoolmansync-card", SpoolmanSyncCard);
+console.debug("SpoolmanSyncCard custom element defined");
 
 class SpoolmanSyncCardEditor extends HTMLElement {
   constructor() {
@@ -174,7 +177,7 @@ class SpoolmanSyncCardEditor extends HTMLElement {
   }
 }
 
-customElements.define("spoolmansync-card-editor", SpoolmanSyncCardEditor);
+console.debug("SpoolmanSyncCardEditor custom element defined");
 
 window.customCards = window.customCards || [];
 window.customCards.push({
@@ -183,5 +186,6 @@ window.customCards.push({
   description: "A card to manage your SpoolmanSync AMS trays",
   preview: true,
 });
-
+console.info("%c SPOOLMANSYNC-CARD loaded", "color: white; background: #03a9f4; font-weight: 700;");
+console.debug("window.customCards:", window.customCards
 console.info("%c SPOOLMANSYNC-CARD loaded", "color: white; background: #03a9f4; font-weight: 700;");
